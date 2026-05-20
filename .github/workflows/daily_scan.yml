@@ -1,0 +1,60 @@
+name: Daily Job Monitor
+
+on:
+  schedule:
+    # Runs every day at 8:00 AM UTC (adjust to your preferred time zone)
+    - cron: "0 8 * * *"
+  workflow_dispatch:  # Also allows manual triggering from the Actions tab
+
+jobs:
+  scan:
+    name: Scan career sites and send email
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to commit seen_jobs.json back to the repo
+
+    steps:
+      # ── 1. Check out the repository ──────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      # ── 2. Set up Python ─────────────────────────────────────────────────
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # ── 3. Install Chrome & ChromeDriver ─────────────────────────────────
+      - name: Install Google Chrome
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -q
+          sudo apt-get install -y google-chrome-stable
+
+      # ── 4. Install Python dependencies ───────────────────────────────────
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # ── 5. Run the job monitor ────────────────────────────────────────────
+      - name: Run daily job scan
+        env:
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        run: python job_monitor.py
+
+      # ── 6. Commit seen_jobs.json back to repo (deduplication state) ───────
+      - name: Commit updated seen_jobs.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_jobs.json || true
+          git diff --cached --quiet || git commit -m "chore: update seen_jobs.json [skip ci]"
+          git push
