@@ -2,8 +2,8 @@ name: Daily Job Monitor
 
 on:
   schedule:
-    # Runs every day at 9:00 AM UTC (adjust to your preferred time zone)
-    - cron: "0 9 * * *"
+          # Runs every day at 9:00 AM ET (13:00 UTC / EDT)
+        - cron: "0 13 * * *"
   workflow_dispatch:  # Also allows manual triggering from the Actions tab
 
 jobs:
