@@ -1,4 +1,4 @@
-print("hello world")#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Daily Job Monitor
 Scans multiple company career sites and emails new job postings.
@@ -124,6 +124,7 @@ def is_us_location(location: str) -> bool:
         "baltimore", "washington d.c", "raleigh", "san diego",
         "san jose", "columbus", "jacksonville", "indianapolis",
         "memphis", "louisville", "richmond", "hartford", "new haven",
+        "usa", "u.s.a", "remote", "new york city", "nyc",
     ]
     return any(s in loc for s in us_signals)
 
@@ -552,8 +553,11 @@ def main() -> None:
     else:
         subject = f"Daily Job Scan — {today_str} — No New Roles"
 
-    body = build_email_body(new_jobs, still_open, per_site_counts, errors, scan_ts)
-    send_email(subject, body)
+    if new_jobs or still_open or errors:
+        body = build_email_body(new_jobs, still_open, per_site_counts, errors, scan_ts)
+        send_email(subject, body)
+    else:
+        print("Nothing to report today. Skipping email.")
     print("Done.")
 
 
